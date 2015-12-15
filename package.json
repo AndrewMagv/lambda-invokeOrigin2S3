@@ -1,0 +1,24 @@
+{
+  "name": "lambda-invoke-origin2s3",
+  "version": "0.0.1",
+  "description": "Lambda function for pulling origin resource to S3",
+  "main": "PullOrigin2S3.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AndrewMagv/lambda-invokeOrigin2S3.git"
+  },
+  "author": "Jeffrey Jen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/AndrewMagv/lambda-invokeOrigin2S3/issues"
+  },
+  "homepage": "https://github.com/AndrewMagv/lambda-invokeOrigin2S3#readme",
+  "dependencies": {
+    "aws-sdk-promise": "git+https://github.com/jeffjen/aws-sdk-promise.git",
+    "lodash": "^3.10.1",
+    "ytdl-core": "^0.7.8"
+  }
+}

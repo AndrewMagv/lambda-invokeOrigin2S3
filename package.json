@@ -18,7 +18,8 @@
   "homepage": "https://github.com/AndrewMagv/lambda-invokeOrigin2S3#readme",
   "dependencies": {
     "aws-sdk-promise": "git+https://github.com/jeffjen/aws-sdk-promise.git",
-    "lodash": "^3.10.1",
+    "promise": "^7.0.4",
+    "request": "^2.67.0",
     "ytdl-core": "^0.7.8"
   }
 }

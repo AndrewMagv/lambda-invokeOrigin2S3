@@ -1,11 +1,14 @@
 "use strict";
 
-var util = require("util");
+var https = require("https"),
+    util = require("util");
 
-var debug = util.debuglog('pull-ytdl');
+var debug = console.log;
+if (util.debuglog !== undefined) {
+    debug = util.debuglog('pull-ytdl');
+}
 
 var Promise = require("promise"),
-    request = require("request"),
     ytdl = require("ytdl-core");
 
 var aws = require("aws-sdk-promise")(),
@@ -27,18 +30,18 @@ function ytdlinfo(origin, opts) {
 
 function get(url) {
     function _get(ok, grr) {
-        request.get(url)
-            .on("response", function(res) {
-                debug("ytdl: get:", res.statusCode, res.headers);
-                if (res.statusCode === 200) {
-                    ok({body: res, contentLength: res.headers['content-length']});
-                } else {
-                    grr(res.statusCode);
-                }
-            })
-            .on("error", function(e) {
-                grr(e);
-            });
+        https.get(url, function(res) {
+            var status = res.statusCode;
+            if (status === 200) {
+                ok({body: res, size: res.headers["content-length"]});
+            } else if (status === 302 || status === 301) {
+                ok(get(res.headers.location));
+            } else {
+                grr("failed to get resource");
+            }
+        }).on("error", function(e) {
+            grr(e);
+        });
     }
     return new Promise(_get);
 }
@@ -56,16 +59,16 @@ exports.pull = function(event, context) {
             return get(info.formats[0].url);
         })
         .then(function(res) {
-            debug("putObject: size:", res.contentLength);
+            debug("putObject: size:", res.size);
             var putOpts = {
                 Bucket: bucket,
                 Key: udat.miid + ":" + udat.page + ":" + udat.part + "@" + udat.src,
                 Body: res.body,
                 ContentType: "x-mz-custom/video",
-                ContentLength: res.contentLength,
+                ContentLength: res.size,
                 StorageClass: "REDUCED_REDUNDANCY"
             };
-            return PutObject(putOpts);
+            return PutObject(putOpts, {debug: true});
         })
         .then(function() {
             debug("ok");

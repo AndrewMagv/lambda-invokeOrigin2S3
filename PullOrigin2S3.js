@@ -78,7 +78,7 @@ exports.pull = function(event, context) {
         })
         .then(function() {
             debug("ok");
-            context && context.success("ok");
+            context && context.succeed("ok");
         })
         .catch(function(err) {
             debug(err);

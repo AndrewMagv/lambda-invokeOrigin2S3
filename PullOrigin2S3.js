@@ -55,9 +55,14 @@ exports.pull = function(event, context) {
         .then(function(info) {
             udat.src = info.title;
             debug("ytdl: title:", info.title);
-            var output = info.formats.filter(function(fmt) { return fmt.itag === "22"; });
-            debug("ytdl: url:", output[0].url);
-            return get(output[0].url);
+            debug("ytdl: output:", JSON.stringify(info.formats.filter(function(fmt) {
+                return fmt.quality !== undefined;
+            })
+            .map(function(fmt) {
+                return [fmt.quality, fmt.itag, fmt.type];
+            }), null, 4));
+            debug("ytdl: url:", info.formats[0].url);
+            return get(info.formats[0].url);
         })
         .then(function(res) {
             debug("putObject: size:", res.size);

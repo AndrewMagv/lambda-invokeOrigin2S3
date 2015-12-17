@@ -69,7 +69,7 @@ exports.pull = function(event, context) {
                 ContentLength: res.size,
                 StorageClass: "REDUCED_REDUNDANCY"
             };
-            return PutObject(putOpts, {debug: true});
+            return PutObject(putOpts);
         })
         .then(function() {
             debug("ok");

@@ -1,6 +1,8 @@
 "use strict";
 
-var https = require("https"),
+var crypto = require("crypto"),
+    https = require("https"),
+    moment = require("moment"),
     util = require("util");
 
 var debug = console.log;
@@ -14,6 +16,10 @@ var Promise = require("promise"),
 var aws = require("aws-sdk-promise")(),
     s3 = aws.S3(),
     PutObject = s3.PutObject;
+
+function sha1(data) {
+    return crypto.createHash("sha1").update(data).digest("hex");
+}
 
 function ytdlinfo(origin, opts) {
     function getytinfo(ok, grr) {
@@ -48,13 +54,15 @@ function get(url) {
 
 exports.pull = function(event, context) {
     var origin = event.Origin,
-        bucket = event.Bucket,
+        vidBucket = event.VidBucket,
+        covBucket = event.CoverBucket,
         udat = event.UserMetaData;
 
     ytdlinfo(origin)
         .then(function(info) {
             udat.src = info.title;
             debug("ytdl: title:", info.title);
+            debug("ytdl: cover:", info.thumbnail_url);
             debug("ytdl: output:", JSON.stringify(info.formats.filter(function(fmt) {
                 return fmt.quality !== undefined;
             })
@@ -62,19 +70,28 @@ exports.pull = function(event, context) {
                 return [fmt.quality, fmt.itag, fmt.type];
             }), null, 4));
             debug("ytdl: url:", info.formats[0].url);
-            return get(info.formats[0].url);
+
+            return Promise.all([get(info.formats[0].url), get(info.thumbnail_url)]);
         })
-        .then(function(res) {
-            debug("putObject: size:", res.size);
-            var putOpts = {
-                Bucket: bucket,
+        .then(function(resources) {
+            debug("putObject: size:", resources.map(function(res) { return res.size; }));
+            var putVidOpts = {
+                Bucket: vidBucket,
                 Key: udat.miid + ":" + udat.page + ":" + udat.part + "@" + udat.src,
-                Body: res.body,
+                Body: resources[0].body,
                 ContentType: "x-mz-custom/video",
-                ContentLength: res.size,
+                ContentLength: resources[0].size,
                 StorageClass: "REDUCED_REDUNDANCY"
             };
-            return PutObject(putOpts);
+            var putCoverOpts = {
+                Bucket: covBucket,
+                Key: udat.miid + ":" + udat.page + ":" + udat.part + "@" + sha1(moment().toJSON()) + "@" + udat.channel,
+                Body: resources[1].body,
+                ContentType: "x-mz-custom/image",
+                ContentLength: resources[1].size,
+                StorageClass: "REDUCED_REDUNDANCY"
+            };
+            return Promise.all([PutObject(putVidOpts), PutObject(putCoverOpts)]);
         })
         .then(function() {
             debug("ok");
